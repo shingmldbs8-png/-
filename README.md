@@ -1,7 +1,7 @@
 # -
-## 정밀측정산업기사 필기 모의고사
+## 정밀측정산업기사 실기 모의고사
 
-- `mock_exam/정밀측정산업기사_모의고사_1회.docx` – Word 문서 (편집·인쇄용)
-- `mock_exam/정밀측정산업기사_모의고사_1회.pdf` – 인쇄용 (A4, 문제 → 마지막에 정답·해설)
-- `mock_exam/정밀측정산업기사_모의고사_1회.html` – 브라우저/모바일 보기용
-- 재생성: `python3 scripts/build_mock_exam.py && node scripts/html_to_pdf.js mock_exam/정밀측정산업기사_모의고사_1회.html mock_exam/정밀측정산업기사_모의고사_1회.pdf`
+- `mock_exam/정밀측정산업기사_실기_모의고사_1회.docx` – 실기 모의고사 (A 필답형 60점 + B 작업형 계산 40점, 마지막에 정답·해설)
+- 문제 유형 출처: 「정밀측정산업기사 실기 강의 노트」(교재 Chapter 7, p.512~573 사진 정리본), 숫자는 새로 바꿈
+- 재생성: `node scripts/build_practical_exam_docx.js mock_exam/정밀측정산업기사_실기_모의고사_1회.docx`
+- `mock_exam/필기_참고/` – 앞서 만든 필기 객관식 모의고사(참고용)
