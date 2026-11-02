@@ -53,12 +53,13 @@ function answerBox(lines = 5) {
 const space = () => new Paragraph({ spacing: { after: 120 }, children: [] });
 
 // 정답 + 단계 풀이 (시험지 뒤 해설 페이지와 공부용 버전에서 같이 사용)
-function solution(q) {
+function solution(q, no) {
   const out = [P([run('정답  ', { bold: true, size: 19 }), run(q.ans, { size: 19, color: BLUE, bold: true })], { indent: 200 })];
   q.sol.forEach((s) => {
-    if (typeof s === 'string') out.push(P(s, { indent: 200, size: 18, after: 30 }));
+    if (typeof s === 'string') out.push(P(s, { indent: s.startsWith('·') ? 400 : 200, size: 18, after: 30, bold: /^(\d단계|핵심|자주)/.test(s), before: /^\d단계/.test(s) ? 60 : 0 }));
     else { out.push(T(s.t, s.r, { widths: s.w })); out.push(new Paragraph({ spacing: { after: 40 }, children: [] })); }
   });
+  (SOLFIG[no] || []).forEach((n) => out.push(...figure(n, 520)));
   return out;
 }
 
@@ -79,6 +80,7 @@ function figure(name, maxW = 560) {
     new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 100 }, children: [new TextRun({ text: `[그림 ${figNo}]`, size: 16, color: '666666' })] }),
   ];
 }
+const SOLFIG = { 3: ['concentricSol'] }; // 해설에만 넣는 그림
 const FIG = { 1: ['level'], 2: ['gaugeBlock'], 3: ['concentric'], 4: ['cmmPosition'], 5: ['tab'], 6: ['chord', 'threeLeg'], 7: ['flatPin'], 8: ['sphereFringe'], 9: ['autocollimator'], 10: ['surfacePlate'], 11: ['thread'], 12: ['gearChart'], 15: ['dof'], 18: ['pins'], 19: ['micReading12875', 'pinsM'], 20: ['height'], 21: ['cylinderGauge'], 22: ['projector'], 24: ['micCalib'] };
 
 // ---------------- 문제 데이터 ----------------
@@ -113,12 +115,30 @@ const Q = [
       { t: ['', '1', '2', '3', '4'], r: [['X', '10.002', '20.003', '35.001', '44.996'], ['Y', '9.995', '20.001', '35.003', '44.991']] }],
     ask: ['(1) 동심도 측정값  (2) 허용값  (3) 판정 (소수점 셋째자리)'],
     ans: '(1) 0.019  (2) 0.036  (3) 0.019 ≤ 0.036 → 합격',
-    sol: ['데이텀 A(안쪽) 중심: X = (20.003 + 35.001)/2 = 27.502, Y = (20.001 + 35.003)/2 = 27.502',
-      '바깥 원 중심: X = (10.002 + 44.996)/2 = 27.499, Y = (9.995 + 44.991)/2 = 27.493',
-      '동심도 = 2√(0.003² + 0.009²) = 2 × 0.00949 = 0.019',
-      '보너스: 바깥 원은 외측형체 → MMC = 35.01, 실측 지름 = 44.996 − 10.002 = 34.994 → 35.01 − 34.994 = 0.016',
-      '허용값 = 0.02 + 0.016 = 0.036 (데이텀 A에는 Ⓜ 없음 → 데이텀 이동 없음)',
-      '판정: 0.019 ≤ 0.036 → 합격'] },
+    sol: ['핵심 아이디어: 동심도는 ‘두 원의 중심이 얼마나 떨어져 있나’입니다. 그래서 ① 두 원의 중심을 구하고 → ② 중심끼리 X, Y 차이를 구하고 → ③ 피타고라스로 거리 e를 구한 뒤 → ④ 2배 합니다.',
+      '1단계 — 어느 좌표가 어느 원인가 (그림 3 참조)',
+      '· X1, X4: 바깥 원의 왼쪽 끝과 오른쪽 끝 / X2, X3: 안쪽 원(데이텀 A)의 왼쪽 끝과 오른쪽 끝',
+      '· Y도 같은 순서입니다(Y1·Y4 = 바깥 원 아래·위 끝, Y2·Y3 = 안쪽 원 아래·위 끝).',
+      '2단계 — 중심 = 양 끝의 평균 (원의 가운데는 양 끝의 정확히 가운데)',
+      { t: ['원', 'X 중심', 'Y 중심'], r: [
+        ['데이텀 A (안쪽)', '(20.003 + 35.001) ÷ 2 = 27.502', '(20.001 + 35.003) ÷ 2 = 27.502'],
+        ['바깥 원', '(10.002 + 44.996) ÷ 2 = 27.499', '(9.995 + 44.991) ÷ 2 = 27.493']], w: [2000, 3819, 3819] },
+      '3단계 — 두 중심의 차이 (바깥 원 중심 − 데이텀 중심) ← 0.003과 0.009가 여기서 나옵니다',
+      '· ΔX = 27.499 − 27.502 = −0.003 → 크기 0.003',
+      '· ΔY = 27.493 − 27.502 = −0.009 → 크기 0.009',
+      '· 부호(−)는 ‘왼쪽·아래로 벗어났다’는 방향일 뿐이고, 다음 단계에서 제곱하면 없어지므로 크기만 쓰면 됩니다.',
+      '4단계 — 중심 사이 거리 e (피타고라스: 가로 ΔX, 세로 ΔY인 직각삼각형의 빗변)',
+      '· e = √(ΔX² + ΔY²) = √(0.003² + 0.009²) = √(0.000009 + 0.000081) = √0.000090 = 0.00949',
+      '· 계산기 팁: µm로 바꾸면 쉽습니다. 3 µm, 9 µm → √(9 + 81) = √90 = 9.49 µm',
+      '5단계 — 동심도 = 2 × e = 2 × 0.00949 = 0.01897 → 0.019',
+      '· 왜 2배? 공차가 φ0.02(지름)로 주어졌기 때문입니다. 데이텀 중심에서 e만큼 벗어난 점을 담는 원의 지름은 2e입니다(해설 그림).',
+      '6단계 — Ⓜ 보너스 (공차 값 뒤에 Ⓜ이 있으므로)',
+      '· 바깥 원은 축처럼 바깥쪽 형체(외측형체) → MMC = 가장 큰 치수 = 35 + 0.01 = 35.01',
+      '· 실측 지름 = 오른쪽 끝 − 왼쪽 끝 = X4 − X1 = 44.996 − 10.002 = 34.994',
+      '· 보너스 = MMC − 실측 = 35.01 − 34.994 = 0.016',
+      '7단계 — 허용값 = 기하공차 + 보너스 = 0.02 + 0.016 = 0.036 (데이텀 A 뒤에는 Ⓜ이 없으므로 데이텀 이동량은 더하지 않음)',
+      '8단계 — 판정: 측정값 0.019 ≤ 허용값 0.036 → 합격',
+      '자주 하는 실수: ① X1~X4 중 어느 것이 같은 원인지 헷갈림 ② ×2를 빼먹고 0.009로 답함 ③ 지름을 X3 − X2(안쪽 원)로 구함'] },
 
   { part: A, unit: 'A-1 도면해독', title: '3차원 측정기로 위치도 (Ⓜ AⓂ BⓂ)', pts: 4, ref: '교재 p.515~516 문제 6',
     body: ['#1 구멍 φ10 ± 0.05에 위치도 ⊕ φ0.05Ⓜ AⓂ BⓂ. 이론 위치 X = 30, Y = 25.',
@@ -379,7 +399,7 @@ Q.forEach((q, i) => {
   if (STUDY) {
     children.push(new Paragraph({ spacing: { before: 100, after: 40 }, keepNext: true, shading: shade('EEF2F8'),
       children: [run('▶ 해설', { bold: true, size: 19, color: BLUE }), run(`  (참고: ${q.ref})`, { size: 16, color: '666666' })] }));
-    children.push(...solution(q));
+    children.push(...solution(q, i + 1));
   } else {
     children.push(answerBox(q.pts >= 5 ? 6 : 4));
   }
@@ -405,7 +425,7 @@ Q.forEach((q, i) => {
   }
   children.push(new Paragraph({ keepNext: true, spacing: { before: 140, after: 40 }, children: [
     run(`문제 ${i + 1}. ${q.title}`, { bold: true, size: 20 }), run(`  (참고: ${q.ref})`, { size: 16, color: '666666' })] }));
-  children.push(...solution(q));
+  children.push(...solution(q, i + 1));
 });
 }
 children.push(P('— 끝 —', { align: AlignmentType.CENTER, before: 240 }));

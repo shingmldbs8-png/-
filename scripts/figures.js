@@ -401,4 +401,26 @@ F.task1 = svg(660, 330, [
   F.task7 = svg(820, 480, `<g transform="translate(0,50)">${body.join('')}</g>` + `<g transform="translate(600,10)">${notes.join('')}</g>`);
 })();
 
+// 1회 3번 해설: 두 중심의 차이 → 피타고라스 → ×2
+(() => {
+  const k = 15, ax = 330, ay = 170; // 1 µm = 15 px
+  const ox = ax - 3 * k, oy = ay + 9 * k;
+  const r = Math.sqrt(90) * k;
+  F.concentricSol = svg(680, 400, [
+    C(ax, ay, r, { color: BLUE, dash: '6 4', w: 1.4 }),
+    t(ax + r * 0.72 + 6, ay - r * 0.72, '공차역 원: 지름 = 2e', { size: 13, color: BLUE, anchor: 'start' }),
+    L(ox, oy, ax, oy, { w: 1.6, color: RED }), L(ax, oy, ax, ay, { w: 1.6, color: RED }),
+    L(ax, ay, ox, oy, { w: 2.2 }),
+    C(ax, ay, 6, { fill: BLUE, color: BLUE }), C(ox, oy, 6, { fill: INK }),
+    t(ax + 10, ay - 10, '데이텀 A 중심 (27.502, 27.502)', { size: 13, color: BLUE, anchor: 'start', bold: true }),
+    t(ox - 10, oy + 24, '바깥 원 중심 (27.499, 27.493)', { size: 13, anchor: 'middle', bold: true }),
+    t((ox + ax) / 2, oy - 8, 'ΔX = 0.003', { size: 14, color: RED, bold: true }),
+    t(ax + 8, (ay + oy) / 2 + 30, 'ΔY = 0.009', { size: 14, color: RED, bold: true, anchor: 'start' }),
+    t((ox + ax) / 2 - 16, (ay + oy) / 2, 'e', { size: 18, bold: true, anchor: 'end' }),
+    t(20, 30, 'e = √(ΔX² + ΔY²) = √(0.003² + 0.009²) = 0.00949', { size: 14, anchor: 'start' }),
+    t(20, 52, '동심도 = 2 × e = 0.019  (중심이 e 벗어나면 그 점을 담는 원의 지름은 2e)', { size: 14, anchor: 'start' }),
+    t(660, 390, '(1 µm 단위를 크게 확대한 그림)', { size: 11, anchor: 'end', color: GRAY }),
+  ].join(''));
+})();
+
 module.exports = F;
