@@ -4,7 +4,7 @@
 const fs = require('fs');
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType,
-  AlignmentType, BorderStyle, ShadingType, PageBreak, Footer, PageNumber, HeightRule,
+  AlignmentType, BorderStyle, ShadingType, PageBreak, Footer, PageNumber, HeightRule, ImageRun,
 } = require('docx');
 
 const out = process.argv[2];
@@ -62,13 +62,32 @@ function solution(q) {
   return out;
 }
 
+
+// ---- 그림 (scripts/render_figures.js 로 만든 PNG) ----
+const path = require('path');
+const FIGDIR = path.join(__dirname, '..', 'mock_exam', 'figures');
+const SIZES = JSON.parse(fs.readFileSync(path.join(FIGDIR, 'sizes.json'), 'utf8'));
+let figNo = 0;
+function figure(name, maxW = 560) {
+  const s = SIZES[name];
+  if (!s) throw new Error('그림 없음: ' + name);
+  const w = Math.min(maxW, s.w), h = Math.round((s.h * w) / s.w);
+  figNo += 1;
+  return [
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 80, after: 20 }, keepNext: true,
+      children: [new ImageRun({ type: 'png', data: fs.readFileSync(path.join(FIGDIR, name + '.png')), transformation: { width: w, height: h } })] }),
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 100 }, children: [new TextRun({ text: `[그림 ${figNo}]`, size: 16, color: '666666' })] }),
+  ];
+}
+const FIG = { 1: ['level'], 2: ['gaugeBlock'], 3: ['concentric'], 4: ['cmmPosition'], 5: ['tab'], 6: ['chord', 'threeLeg'], 7: ['flatPin'], 8: ['sphereFringe'], 9: ['autocollimator'], 10: ['surfacePlate'], 11: ['thread'], 12: ['gearChart'], 15: ['dof'], 18: ['pins'], 19: ['micReading12875', 'pinsM'], 20: ['height'], 21: ['cylinderGauge'], 22: ['projector'], 24: ['micCalib'] };
+
 // ---------------- 문제 데이터 ----------------
 // body: 문자열(문단) 또는 {t:[header], r:[[...]], w:[widths]}(표)
 const A = 'A. 필답형 (60점) — 주어진 측정값으로 계산';
 const B = 'B. 작업형 계산·기록 (40점) — 측정기 읽음값으로 답안 작성';
 const Q = [
   { part: A, unit: 'A-1 도면해독', title: '수준기로 두 구멍의 평행도', pts: 3, ref: '교재 p.512~513 문제 1·2',
-    body: ['두 구멍에 꼭 맞는 심봉을 끼우고 각 심봉 위에 수준기(감도 0.02 mm/m)를 올려 t₀ = +2.0눈금(데이텀 구멍), t₁ = −1.5눈금(측정 구멍)을 읽었다. 두 구멍 사이 길이 L = 200 mm, 도면 지시는 // 0.02 A 이다.'],
+    body: ['[그림]과 같이 두 구멍에 꼭 맞는 심봉을 끼우고 각 심봉 위에 수준기(감도 0.02 mm/m)를 올려 t₀ = +2.0눈금(데이텀 구멍), t₁ = −1.5눈금(측정 구멍)을 읽었다. 두 구멍 사이 길이 L = 200 mm, 도면 지시는 // 0.02 A 이다.'],
     ask: ['(1) 평행도를 구하시오. (mm, 소수점 넷째자리)', '(2) 합부를 판정하시오.'],
     ans: '(1) 0.0140 mm  (2) 0.0140 ≤ 0.02 → 합격',
     sol: ['눈금 차 = |t₁ − t₀| = |−1.5 − (+2.0)| = 3.5눈금', '1 m당 기울기 차 = 3.5 × 0.02 = 0.07 mm/m',
@@ -355,6 +374,7 @@ Q.forEach((q, i) => {
     if (typeof b === 'string') children.push(P(b, { indent: 200 }));
     else { children.push(T(b.t, b.r, { widths: b.w })); children.push(new Paragraph({ spacing: { after: 60 }, children: [] })); }
   });
+  (FIG[i + 1] || []).forEach((n) => children.push(...figure(n)));
   q.ask.forEach((a) => children.push(P(a, { indent: 200, bold: true, size: 19 })));
   if (STUDY) {
     children.push(new Paragraph({ spacing: { before: 100, after: 40 }, keepNext: true, shading: shade('EEF2F8'),

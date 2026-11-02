@@ -5,7 +5,7 @@
 const fs = require('fs');
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType,
-  AlignmentType, BorderStyle, ShadingType, PageBreak, Footer, PageNumber, HeightRule,
+  AlignmentType, BorderStyle, ShadingType, PageBreak, Footer, PageNumber, HeightRule, ImageRun,
 } = require('docx');
 
 const out = process.argv[2];
@@ -63,6 +63,26 @@ function calcBox(lines = 5) {
       width: { size: W, type: WidthType.DXA }, children: [P('[계산과정 및 답]', { size: 17, color: '666666' })] })] })] });
 }
 const gap = (a = 80) => new Paragraph({ spacing: { after: a }, children: [] });
+
+
+// ---- 그림 (scripts/render_figures.js 로 만든 PNG) ----
+const path = require('path');
+const FIGDIR = path.join(__dirname, '..', 'mock_exam', 'figures');
+const SIZES = JSON.parse(fs.readFileSync(path.join(FIGDIR, 'sizes.json'), 'utf8'));
+let figNo = 0;
+function figure(name, maxW = 560) {
+  const s = SIZES[name];
+  if (!s) throw new Error('그림 없음: ' + name);
+  const w = Math.min(maxW, s.w), h = Math.round((s.h * w) / s.w);
+  figNo += 1;
+  return [
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 80, after: 20 }, keepNext: true,
+      children: [new ImageRun({ type: 'png', data: fs.readFileSync(path.join(FIGDIR, name + '.png')), transformation: { width: w, height: h } })] }),
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 100 }, children: [new TextRun({ text: `[그림 ${figNo}]`, size: 16, color: '666666' })] }),
+  ];
+}
+const FIG = { 1: ['task1', 'micReading24512'], 2: ['height'], 3: ['projector', 'chord'], 4: ['micCalib'], 7: ['task7'], 8: ['dof'] };
+const SOLFIG = { 8: ['dofAxes'] }; // 해설에만 넣는 그림
 
 // ---------------- 과제 ----------------
 // body 요소: 문자열 | {t, r, w} 표 | {sheet: rows} 답안표 | {box: n} 계산칸
@@ -181,7 +201,7 @@ const TASKS = [
   {
     no: 7, title: '기하편차 계산하기', basis: '큐넷 공개문제 과제 7 (10-9쪽)',
     body: [
-      '폭 120, 높이 100인 판 부품. 데이텀 A = 앞면, B = 아랫면, C = 왼쪽 면, D = 전체 폭 120의 중심면. 측정값은 모두 해당 데이텀 면에서 잰 거리(mm)이다.',
+      '[그림]과 같은 폭 120, 높이 100인 판 부품. 데이텀 A = 앞면, B = 아랫면, C = 왼쪽 면, D = 전체 폭 120의 중심면. 측정값은 모두 해당 데이텀 면에서 잰 거리(mm)이다.',
       { t: ['기호', '형체', '크기', '기하공차 기입틀', '이론 위치'], r: [
         ['㉠', '아랫면 홈', '16 ± 0.2', '≡ 0Ⓜ | A | D', '폭 중심(60)'],
         ['㉡', '왼쪽 홈', '30 ± 0.2', '⌖ 0.2Ⓜ | A | B', 'B에서 60'],
@@ -210,7 +230,7 @@ const TASKS = [
       '좌표계: X = 가로, Y = 세로(앞→뒤), Z = 높이. 직선운동 Tx, Ty, Tz / 회전운동 Rx, Ry, Rz로 표기한다.',
       '(1) 구멍 ∅12 ± 0.1에 ⌖ ∅0.1Ⓜ | A | B | C. A = 바닥면(X-Y 평면), B = 왼쪽 면(Y-Z 평면), C = 앞면(X-Z 평면). 제1·2·3차 데이텀을 순서대로 설정할 때 각 데이텀이 구속하는 자유도를 쓰시오.',
       '(2) 같은 부품에서 데이텀 순서가 A(바닥면) → E(Z방향 구멍) → B(왼쪽 면)일 때 각 데이텀이 구속하는 자유도를 쓰시오.',
-      '(3) (1)의 경우 3차원 좌표계의 원점 위치와 X, Y, Z축 방향을 설명하시오. (실제 시험은 3D 도면에 작도)',
+      '(3) (1)의 데이텀 순서로 만들어지는 3차원 좌표계(원점과 X, Y, Z축)를 아래 그림에 작도하시오.',
       { t: ['', '제1차 데이텀', '제2차 데이텀', '제3차 데이텀'], r: [['(1) 직선 / 회전', '', '', ''], ['(2) 직선 / 회전', '', '', '']], w: [1900, 2579, 2579, 2580] },
       { box: 4 },
     ],
@@ -242,20 +262,25 @@ TASKS.forEach((t, idx) => {
   children.push(new Paragraph({ spacing: { before: 120, after: 80 }, keepNext: true,
     border: { bottom: { style: BorderStyle.SINGLE, size: 10, color: BLUE, space: 2 } },
     children: [run(`과제 ${t.no}. ${t.title}`, { bold: true, size: 24, color: BLUE }), run('   (30분)', { size: 18, color: '666666' })] }));
+  let figPlaced = false;
+  const placeFigs = () => { if (!figPlaced) { (FIG[t.no] || []).forEach((n) => children.push(...figure(n))); figPlaced = true; } };
   t.body.forEach((b) => {
     if (typeof b === 'string') children.push(P(b, { indent: 120 }));
     else if (b.sheet) {
+      placeFigs();
       children.push(P(STUDY ? '[답안지 — 정답 기입]' : '[답안지]', { bold: true, size: 18, before: 80 }));
       children.push(sheet(b.sheet, STUDY ? t.ans : null)); children.push(gap());
       if (!STUDY) children.push(calcBox(4));
     }
-    else if (b.box) { if (!STUDY) children.push(calcBox(b.box)); }
+    else if (b.box) { placeFigs(); if (!STUDY) children.push(calcBox(b.box)); }
     else { children.push(T(b.t, b.r, b.w)); children.push(gap()); }
   });
+  placeFigs();
   if (STUDY) {
     children.push(new Paragraph({ spacing: { before: 120, after: 60 }, keepNext: true, shading: shade('EEF2F8'),
       children: [run('▶ 해설', { bold: true, size: 20, color: BLUE }), run(`  (근거: ${t.basis})`, { size: 16, color: '666666' })] }));
     children.push(...taskSolution(t));
+    (SOLFIG[t.no] || []).forEach((n) => children.push(...figure(n, 480)));
   }
 });
 
@@ -271,6 +296,7 @@ TASKS.forEach((t) => {
     border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: BLUE, space: 2 } },
     children: [run(`과제 ${t.no}. ${t.title}`, { bold: true, size: 21, color: BLUE }), run(`  (근거: ${t.basis})`, { size: 16, color: '666666' })] }));
   children.push(...taskSolution(t));
+  (SOLFIG[t.no] || []).forEach((n) => children.push(...figure(n, 480)));
 });
 }
 children.push(P('— 끝 —', { align: AlignmentType.CENTER, before: 240 }));
