@@ -52,13 +52,38 @@ function answerBox(lines = 5) {
 
 const space = () => new Paragraph({ spacing: { after: 120 }, children: [] });
 
+
+// ---- 상세 풀이 렌더링 (scripts/solutions.js) ----
+const { S1, S2 } = require('./solutions');
+function formulaBox(f, d) {
+  const kids = [new Paragraph({ spacing: { after: d.length ? 30 : 0 }, children: [
+    new TextRun({ text: '공식  ', bold: true, size: 17, color: 'B26B00' }),
+    new TextRun({ text: f, bold: true, size: 21, color: '1A1A1A' })] })];
+  d.forEach((x) => kids.push(new Paragraph({ spacing: { after: 10 }, indent: { left: 520 }, children: [new TextRun({ text: '– ' + x, size: 16, color: '555555' })] })));
+  return new Table({ width: { size: W, type: WidthType.DXA }, columnWidths: [W], rows: [new TableRow({ cantSplit: true, children: [new TableCell({
+    width: { size: W, type: WidthType.DXA }, shading: { type: ShadingType.CLEAR, fill: 'FFF6D5', color: 'auto' },
+    margins: { top: 60, bottom: 60, left: 140, right: 100 },
+    borders: { left: { style: BorderStyle.SINGLE, size: 24, color: 'E0A100' }, top: { style: BorderStyle.SINGLE, size: 4, color: 'F0D58A' }, bottom: { style: BorderStyle.SINGLE, size: 4, color: 'F0D58A' }, right: { style: BorderStyle.SINGLE, size: 4, color: 'F0D58A' } },
+    children: kids })] })] });
+}
+function renderSol(items) {
+  const out = [];
+  items.forEach((s) => {
+    if (typeof s === 'string') {
+      const step = /^(\d단계|\d-\d|\(\d\)|[①-⑥]|7-\d)/.test(s) && !s.startsWith('·');
+      const color = s.startsWith('확인') ? '2E7D32' : s.startsWith('실수') ? 'C0392B' : s.startsWith('※') ? '666666' : s.startsWith('핵심') ? BLUE : undefined;
+      out.push(new Paragraph({ spacing: { before: step ? 80 : 0, after: 30 }, indent: { left: s.startsWith('·') ? 420 : 160 }, keepNext: step,
+        children: [new TextRun({ text: s, size: 18, bold: step || /^(핵심|확인|실수)/.test(s), color })] }));
+    } else if (s.f) { out.push(formulaBox(s.f, s.d || [])); out.push(new Paragraph({ spacing: { after: 40 }, children: [] })); }
+    else { out.push(T(s.t, s.r, { widths: s.w })); out.push(new Paragraph({ spacing: { after: 40 }, children: [] })); }
+  });
+  return out;
+}
+
 // 정답 + 단계 풀이 (시험지 뒤 해설 페이지와 공부용 버전에서 같이 사용)
 function solution(q, no) {
   const out = [P([run('정답  ', { bold: true, size: 19 }), run(q.ans, { size: 19, color: BLUE, bold: true })], { indent: 200 })];
-  q.sol.forEach((s) => {
-    if (typeof s === 'string') out.push(P(s, { indent: s.startsWith('·') ? 400 : 200, size: 18, after: 30, bold: /^(\d단계|핵심|자주)/.test(s), before: /^\d단계/.test(s) ? 60 : 0 }));
-    else { out.push(T(s.t, s.r, { widths: s.w })); out.push(new Paragraph({ spacing: { after: 40 }, children: [] })); }
-  });
+  out.push(...renderSol(S1[no] || q.sol));
   (SOLFIG[no] || []).forEach((n) => out.push(...figure(n, 520)));
   return out;
 }
