@@ -423,4 +423,34 @@ F.task1 = svg(660, 330, [
   ].join(''));
 })();
 
+// 1회 9번 해설: 누적 곡선 · 양단 기준선 · 벗어난 양
+(() => {
+  const cum = [0, 2, 1, 4, 5, 3];
+  const x0 = 70, y0 = 300, sx = 100, sy = 45; // 1 µm = 45 px
+  const P2 = (i, v) => [x0 + i * sx, y0 - v * sy];
+  let g = '';
+  for (let v = -1; v <= 5; v++) g += L(x0 - 10, y0 - v * sy, x0 + 5 * sx + 10, y0 - v * sy, { w: 0.6, color: '#e2e2e2' }) + t(x0 - 16, y0 - v * sy + 5, String(v), { size: 11, anchor: 'end', color: GRAY });
+  for (let i = 0; i <= 5; i++) g += t(x0 + i * sx, y0 + 70, `점${i}`, { size: 12 });
+  const ref = cum.map((_, i) => 3 * i / 5);
+  const bars = cum.map((v, i) => {
+    if (i === 0 || i === 5) return '';
+    const [x, y1] = P2(i, v), [, y2] = P2(i, ref[i]);
+    const d = (v - ref[i]).toFixed(1);
+    return L(x, y2, x, y1, { w: 2, color: RED }) + t(x + 8, (y1 + y2) / 2 + 5, (d > 0 ? '+' : '') + d, { size: 13, color: RED, bold: true, anchor: 'start' });
+  }).join('');
+  const poly = cum.map((v, i) => P2(i, v).join(',')).join(' ');
+  // 최고·최저 평행선
+  const par = (off, col) => { const a = P2(0, off), b = P2(5, 3 + off); return L(a[0], a[1], b[0], b[1], { w: 1, color: col, dash: '3 4' }); };
+  F.straightnessSol = svg(640, 400, [
+    g,
+    L(...P2(0, 0), ...P2(5, 3), { w: 1.8, color: GRAY, dash: '8 5' }), t(P2(5, 3)[0] + 6, P2(5, 3)[1] + 22, '기준선(양 끝 연결)', { size: 12, color: GRAY, anchor: 'end' }),
+    par(2.6, BLUE), par(-0.2, BLUE),
+    `<polyline points="${poly}" fill="none" stroke="${INK}" stroke-width="2.4"/>`,
+    ...cum.map((v, i) => C(...P2(i, v), 4.5, { fill: INK })), bars,
+    t(20, 28, '검은 선 = 누적(실제 모양), 빨간 막대 = 기준선 대비 값', { size: 13, anchor: 'start' }),
+    t(20, 48, '파란 점선 두 줄 사이 폭 = 진직도 = 2.6 − (−0.2) = 2.8 µm', { size: 13, anchor: 'start', color: BLUE, bold: true }),
+    t(26, 190, '높이 (µm)', { size: 12, rot: -90 }),
+  ].join(''));
+})();
+
 module.exports = F;

@@ -102,5 +102,9 @@
  "concentricSol": {
   "w": 680,
   "h": 400
+ },
+ "straightnessSol": {
+  "w": 640,
+  "h": 400
  }
 }
