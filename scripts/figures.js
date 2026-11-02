@@ -453,4 +453,46 @@ F.task1 = svg(660, 330, [
   ].join(''));
 })();
 
+// 1회 10번 해설 ①: 측정선 ② B→X→D 를 B 중심으로 돌려 D를 0에 맞추기
+(() => {
+  const x0 = 90, y0 = 245, sx = 220, sy = 26; // 1 µm = 26 px
+  const P2 = (i, v) => [x0 + i * sx, y0 - v * sy];
+  const meas = [0, 1, 4], corr = [0, -1, 0], line = [0, -2, -4];
+  const names = ['B (시작)', 'X (가운데)', 'D (끝)'];
+  let g = '';
+  for (let v = -5; v <= 5; v++) g += L(x0 - 20, y0 - v * sy, x0 + 2 * sx + 20, y0 - v * sy, { w: 0.5, color: '#e6e6e6' }) + (v % 1 === 0 ? t(x0 - 26, y0 - v * sy + 4, String(v), { size: 10, anchor: 'end', color: GRAY }) : '');
+  const pl = (arr, col, w, dash) => `<polyline points="${arr.map((v, i) => P2(i, v).join(',')).join(' ')}" fill="none" stroke="${col}" stroke-width="${w}" ${dash ? `stroke-dasharray="${dash}"` : ''}/>`;
+  F.planeRotationSol = svg(680, 430, [
+    g,
+    pl(meas, INK, 2.2), ...meas.map((v, i) => C(...P2(i, v), 5, { fill: INK })),
+    pl(line, RED, 1.6, '7 4'),
+    pl(corr, BLUE, 2.4), ...corr.map((v, i) => C(...P2(i, v), 5, { fill: BLUE, color: BLUE })),
+    // 보정 화살표
+    L(P2(1, 1)[0] + 14, P2(1, 1)[1], P2(1, -1)[0] + 14, P2(1, -1)[1], { w: 1.6, color: RED, m: 'arr' }), t(P2(1, 0)[0] + 22, P2(1, 0)[1] + 5, '보정 −2', { size: 14, color: RED, bold: true, anchor: 'start' }),
+    L(P2(2, 4)[0] + 14, P2(2, 4)[1], P2(2, 0)[0] + 14, P2(2, 0)[1], { w: 1.6, color: RED, m: 'arr' }), t(P2(2, 2)[0] + 22, P2(2, 2)[1] + 5, '보정 −4', { size: 14, color: RED, bold: true, anchor: 'start' }),
+    t(P2(1, 1)[0], P2(1, 1)[1] - 12, '측정 +1', { size: 13 }), t(P2(2, 4)[0] - 10, P2(2, 4)[1] - 12, '측정 +4', { size: 13, anchor: 'end' }),
+    t(P2(1, -1)[0] + 10, P2(1, -1)[1] + 24, '보정 후 −1', { size: 13, color: BLUE, bold: true, anchor: 'start' }), t(P2(2, 0)[0] - 10, P2(2, 0)[1] + 22, '보정 후 0', { size: 13, color: BLUE, bold: true, anchor: 'end' }),
+    ...names.map((n, i) => t(P2(i, 0)[0], 412, n, { size: 13, bold: true })),
+    t(20, 26, '측정선 ② B→X→D: D는 기준평면 위(0)여야 하는데 +4로 측정됨', { size: 13, anchor: 'start' }),
+    t(20, 46, '→ B를 중심으로 선을 돌려 D를 −4 내리면, 거리가 절반인 X는 −2만 내려감', { size: 13, anchor: 'start', color: RED }),
+    t(20, 66, '검은 선 = 측정값, 빨간 점선 = 보정량(0 → −2 → −4), 파란 선 = 보정 후', { size: 12, anchor: 'start', color: GRAY }),
+  ].join(''));
+})();
+
+// 1회 10번 해설 ②: 보정 후 각 점의 높이
+(() => {
+  const pts = { A: [80, 290, 0], E: [260, 290, 2], B: [440, 290, 0], H: [80, 170, 1], X: [260, 170, -1], F: [440, 170, 0], D: [80, 50, 0], G: [260, 50, -4], C: [440, 50, -10] };
+  const body = [R(80, 50, 360, 240, { fill: '#f4f6f8' }), L(80, 290, 440, 50, { color: GRAY, w: 1 }), L(440, 290, 80, 50, { color: GRAY, w: 1 })];
+  for (const [n, [x, y, v]] of Object.entries(pts)) {
+    const col = v === 2 ? RED : v === -10 ? BLUE : INK;
+    body.push(C(x, y, 6, { fill: col, color: col }));
+    body.push(t(x + (x === 440 ? 14 : x === 80 ? -14 : 0), y + (y === 290 ? 26 : y === 50 ? -12 : -12), `${n} ${v > 0 ? '+' : ''}${v}`, { size: 15, bold: true, color: col, anchor: x === 440 ? 'start' : x === 80 ? 'end' : 'middle' }));
+  }
+  body.push(t(480, 140, '최고 E = +2', { size: 14, color: RED, bold: true, anchor: 'start' }));
+  body.push(t(480, 162, '최저 C = −10', { size: 14, color: BLUE, bold: true, anchor: 'start' }));
+  body.push(t(480, 190, '평면도 = 2 − (−10)', { size: 14, anchor: 'start' }));
+  body.push(t(480, 210, '= 12 µm', { size: 14, anchor: 'start', bold: true }));
+  F.planeValuesSol = svg(640, 330, body.join(''));
+})();
+
 module.exports = F;

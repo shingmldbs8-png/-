@@ -106,5 +106,13 @@
  "straightnessSol": {
   "w": 640,
   "h": 400
+ },
+ "planeRotationSol": {
+  "w": 680,
+  "h": 430
+ },
+ "planeValuesSol": {
+  "w": 640,
+  "h": 330
  }
 }
