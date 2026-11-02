@@ -1,5 +1,5 @@
 // 정밀측정산업기사 실기 모의고사 — 큐넷 공개문제 형식 (과제 1~8, 과제당 30분)
-// 사용법: node scripts/build_qnet_exam_docx.js <output.docx>
+// 사용법: node scripts/build_qnet_exam_docx.js <output.docx> [--study]
 // 형식 출처: 아티팩트 「정밀측정 실기 공개문제」(큐넷 공개문제 과제 1·4·5·6·7·8 정리)
 // 문제 유형 보충: 「정밀측정산업기사 실기 강의 노트」(교재 Chapter 7). 숫자는 모두 새로 만듦.
 const fs = require('fs');
@@ -9,6 +9,7 @@ const {
 } = require('docx');
 
 const out = process.argv[2];
+const STUDY = process.argv[3] === '--study'; // 과제 바로 밑에 해설을 넣는 공부용 버전
 const FONT = '맑은 고딕';
 const BLUE = '1F4E8C';
 const W = 9638;
@@ -38,9 +39,23 @@ function T(header, rows, widths) {
 }
 
 // 큐넷 답안지 형식: 번호 | 항목 | 요구정밀도 | 측정값(답) | 계산과정
-function sheet(rows) {
+function sheet(rows, answers) {
   const w = [800, 2300, 1300, 1700, W - 6100];
-  return T(['번호', '항목', '요구정밀도', '답', '계산과정'], rows.map((r) => [r[0], r[1], r[2] ?? '', '', '']), w);
+  return T(['번호', '항목', '요구정밀도', '답', '계산과정'], rows.map((r, i) => [r[0], r[1], r[2] ?? '', answers ? answers[i][2] : '', answers ? '아래 해설' : '']), w);
+}
+
+// 과제 해설 블록 (시험지 뒤 해설 페이지와 공부용 버전에서 같이 사용)
+function taskSolution(t) {
+  const out = [];
+  t.ans.forEach((a) => {
+    out.push(P([run(`${a[0]} ${a[1]}  `, { bold: true, size: 19 }), run(a[2], { bold: true, size: 19, color: BLUE })], { indent: 120, keepNext: true, after: 20 }));
+    out.push(P(a[3], { indent: 360, size: 18 }));
+  });
+  if (t.tips.length) {
+    out.push(P('포인트', { bold: true, size: 17, indent: 120, before: 60, after: 20 }));
+    t.tips.forEach((s) => out.push(P('· ' + s, { indent: 360, size: 17, after: 20 })));
+  }
+  return out;
 }
 function calcBox(lines = 5) {
   return new Table({ width: { size: W, type: WidthType.DXA }, columnWidths: [W], rows: [
@@ -209,7 +224,7 @@ const TASKS = [
 // ---------------- 문서 조립 ----------------
 const children = [];
 children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 80 },
-  children: [run('정밀측정산업기사 실기 모의고사 (큐넷 공개문제형)', { bold: true, size: 32 })] }));
+  children: [run(`정밀측정산업기사 실기 모의고사 (큐넷 공개문제형)${STUDY ? ' — 해설 포함 공부용' : ''}`, { bold: true, size: 32 })] }));
 children.push(P('정밀측정실무 · 과제 8개 × 30분 = 4시간 · 100점 / 60점 이상 합격', { align: AlignmentType.CENTER, size: 19 }));
 children.push(P('수험번호: ______________     성명: ______________     점수: ________ / 100', { align: AlignmentType.CENTER, size: 19, after: 160 }));
 children.push(P('※ 큐넷 공개문제(과제 1·4·5·6·7·8)의 형식과 문항 구성을 그대로 따르고 숫자를 새로 바꾼 연습용 모의고사입니다. 과제 2·3은 공개문제 자료에 없어 교재(실기 강의 노트) 유형으로 대신했습니다(확인 필요). 과제 1~3은 실제 시험에서 측정기로 직접 재는 과제라, 여기서는 읽음값으로 답안을 작성하는 연습으로 바꿨습니다.', { size: 17, fill: 'EEF2F8' }));
@@ -219,6 +234,7 @@ children.push(P('수험자 유의사항(큐넷 공개문제 요약)', { bold: tr
   '단위가 없으면 mm로 채점. mm는 소수점 셋째자리(넷째자리에서 반올림), µm는 소수점 둘째자리, 각도는 초 단위까지.',
   '교정과제는 피교정 측정기의 일련번호를 기록. 1개 과정이라도 불참하거나 시간 내 미완성이면 실격.',
 ].forEach((t) => children.push(P('· ' + t, { indent: 200, size: 17 })));
+if (STUDY) children.push(P('이 버전은 공부용으로 각 과제 바로 밑에 정답과 해설이 있습니다. 시험처럼 풀려면 시험지 버전을 쓰세요.', { size: 17, bold: true, color: BLUE }));
 children.push(P('배점: 과제당 12.5점 (8과제 = 100점) — 실제 배점은 비공개이므로 자가 채점용 가정입니다.', { size: 16, color: '666666', after: 120 }));
 
 TASKS.forEach((t, idx) => {
@@ -228,11 +244,22 @@ TASKS.forEach((t, idx) => {
     children: [run(`과제 ${t.no}. ${t.title}`, { bold: true, size: 24, color: BLUE }), run('   (30분)', { size: 18, color: '666666' })] }));
   t.body.forEach((b) => {
     if (typeof b === 'string') children.push(P(b, { indent: 120 }));
-    else if (b.sheet) { children.push(P('[답안지]', { bold: true, size: 18, before: 80 })); children.push(sheet(b.sheet)); children.push(gap()); children.push(calcBox(4)); }
-    else if (b.box) children.push(calcBox(b.box));
+    else if (b.sheet) {
+      children.push(P(STUDY ? '[답안지 — 정답 기입]' : '[답안지]', { bold: true, size: 18, before: 80 }));
+      children.push(sheet(b.sheet, STUDY ? t.ans : null)); children.push(gap());
+      if (!STUDY) children.push(calcBox(4));
+    }
+    else if (b.box) { if (!STUDY) children.push(calcBox(b.box)); }
     else { children.push(T(b.t, b.r, b.w)); children.push(gap()); }
   });
+  if (STUDY) {
+    children.push(new Paragraph({ spacing: { before: 120, after: 60 }, keepNext: true, shading: shade('EEF2F8'),
+      children: [run('▶ 해설', { bold: true, size: 20, color: BLUE }), run(`  (근거: ${t.basis})`, { size: 16, color: '666666' })] }));
+    children.push(...taskSolution(t));
+  }
 });
+
+if (!STUDY) {
 
 children.push(new Paragraph({ children: [new PageBreak()] }));
 children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 160 },
@@ -243,15 +270,9 @@ TASKS.forEach((t) => {
   children.push(new Paragraph({ spacing: { before: 200, after: 80 }, keepNext: true,
     border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: BLUE, space: 2 } },
     children: [run(`과제 ${t.no}. ${t.title}`, { bold: true, size: 21, color: BLUE }), run(`  (근거: ${t.basis})`, { size: 16, color: '666666' })] }));
-  t.ans.forEach((a) => {
-    children.push(P([run(`${a[0]} ${a[1]}  `, { bold: true, size: 19 }), run(a[2], { bold: true, size: 19, color: BLUE })], { indent: 120, keepNext: true, after: 20 }));
-    children.push(P(a[3], { indent: 360, size: 18 }));
-  });
-  if (t.tips.length) {
-    children.push(P('포인트', { bold: true, size: 17, indent: 120, before: 60, after: 20 }));
-    t.tips.forEach((s) => children.push(P('· ' + s, { indent: 360, size: 17, after: 20 })));
-  }
+  children.push(...taskSolution(t));
 });
+}
 children.push(P('— 끝 —', { align: AlignmentType.CENTER, before: 240 }));
 
 const doc = new Document({

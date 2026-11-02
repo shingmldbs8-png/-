@@ -1,5 +1,5 @@
 // 정밀측정산업기사 실기 모의고사 (Word) 생성
-// 사용법: node scripts/build_practical_exam_docx.js <output.docx>
+// 사용법: node scripts/build_practical_exam_docx.js <output.docx> [--study]
 // 문제 유형은 「정밀측정산업기사 실기 강의 노트」(교재 Chapter 7, p.512~573)를 따르고 숫자는 새로 만듦.
 const fs = require('fs');
 const {
@@ -8,6 +8,7 @@ const {
 } = require('docx');
 
 const out = process.argv[2];
+const STUDY = process.argv[3] === '--study'; // 문제 바로 밑에 해설을 넣는 공부용 버전
 const FONT = '맑은 고딕';
 const BLUE = '1F4E8C';
 const W = 9638; // A4 본문 폭(DXA, 좌우 여백 1134)
@@ -50,6 +51,16 @@ function answerBox(lines = 5) {
 }
 
 const space = () => new Paragraph({ spacing: { after: 120 }, children: [] });
+
+// 정답 + 단계 풀이 (시험지 뒤 해설 페이지와 공부용 버전에서 같이 사용)
+function solution(q) {
+  const out = [P([run('정답  ', { bold: true, size: 19 }), run(q.ans, { size: 19, color: BLUE, bold: true })], { indent: 200 })];
+  q.sol.forEach((s) => {
+    if (typeof s === 'string') out.push(P(s, { indent: 200, size: 18, after: 30 }));
+    else { out.push(T(s.t, s.r, { widths: s.w })); out.push(new Paragraph({ spacing: { after: 40 }, children: [] })); }
+  });
+  return out;
+}
 
 // ---------------- 문제 데이터 ----------------
 // body: 문자열(문단) 또는 {t:[header], r:[[...]], w:[widths]}(표)
@@ -321,13 +332,13 @@ const Q = [
 // ---------------- 문서 조립 ----------------
 const children = [];
 children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 80 },
-  children: [run('정밀측정산업기사 실기 모의고사 (제1회)', { bold: true, size: 34 })] }));
+  children: [run(`정밀측정산업기사 실기 모의고사 (제1회)${STUDY ? ' — 해설 포함 공부용' : ''}`, { bold: true, size: 34 })] }));
 children.push(P('정밀측정실무 · 시험시간 4시간 · 100점 만점 / 60점 이상 합격', { align: AlignmentType.CENTER, size: 19 }));
 children.push(P('수험번호: ______________     성명: ______________     점수: ________ / 100', { align: AlignmentType.CENTER, size: 19, after: 160 }));
 children.push(new Paragraph({ spacing: { after: 80 }, shading: shade('EEF2F8'), children: [run(
   '※ 「정밀측정산업기사 실기 강의 노트」(교재 Chapter 7, p.512~573 사진 정리본)의 문제 유형을 따라 숫자를 새로 바꾼 연습용 모의고사입니다. 교재처럼 A. 필답형(계산)과 B. 작업형(측정기 읽음값 기록·계산)으로 나눴으며, 실제 시험은 작업형(측정기로 직접 측정)이므로 B는 답안 작성 연습용입니다.', { size: 17 })] }));
 children.push(new Paragraph({ spacing: { after: 160 }, shading: shade('EEF2F8'), children: [run(
-  '답안 작성 규칙: 공식 → 숫자 대입 → 결과 순서로 [계산과정]을 쓰고, 판정은 부등호와 결론(합격/불합격)을 함께 적습니다. 자릿수는 문제에서 요구한 자리까지. 정답과 해설은 마지막 페이지에 있습니다.', { size: 17 })] }));
+  `답안 작성 규칙: 공식 → 숫자 대입 → 결과 순서로 [계산과정]을 쓰고, 판정은 부등호와 결론(합격/불합격)을 함께 적습니다. 자릿수는 문제에서 요구한 자리까지. ${STUDY ? '이 버전은 공부용으로 각 문제 바로 밑에 정답과 해설이 있습니다. 시험처럼 풀려면 시험지 버전을 쓰세요.' : '정답과 해설은 마지막 페이지에 있습니다.'}`, { size: 17 })] }));
 
 let part = '';
 Q.forEach((q, i) => {
@@ -345,9 +356,17 @@ Q.forEach((q, i) => {
     else { children.push(T(b.t, b.r, { widths: b.w })); children.push(new Paragraph({ spacing: { after: 60 }, children: [] })); }
   });
   q.ask.forEach((a) => children.push(P(a, { indent: 200, bold: true, size: 19 })));
-  children.push(answerBox(q.pts >= 5 ? 6 : 4));
+  if (STUDY) {
+    children.push(new Paragraph({ spacing: { before: 100, after: 40 }, keepNext: true, shading: shade('EEF2F8'),
+      children: [run('▶ 해설', { bold: true, size: 19, color: BLUE }), run(`  (참고: ${q.ref})`, { size: 16, color: '666666' })] }));
+    children.push(...solution(q));
+  } else {
+    children.push(answerBox(q.pts >= 5 ? 6 : 4));
+  }
   children.push(space());
 });
+
+if (!STUDY) {
 
 // 정답 및 해설
 children.push(new Paragraph({ children: [new PageBreak()] }));
@@ -366,12 +385,9 @@ Q.forEach((q, i) => {
   }
   children.push(new Paragraph({ keepNext: true, spacing: { before: 140, after: 40 }, children: [
     run(`문제 ${i + 1}. ${q.title}`, { bold: true, size: 20 }), run(`  (참고: ${q.ref})`, { size: 16, color: '666666' })] }));
-  children.push(P([run('정답  ', { bold: true, size: 19 }), run(q.ans, { size: 19, color: BLUE, bold: true })], { indent: 200 }));
-  q.sol.forEach((s) => {
-    if (typeof s === 'string') children.push(P(s, { indent: 200, size: 18, after: 30 }));
-    else { children.push(T(s.t, s.r, { widths: s.w })); children.push(new Paragraph({ spacing: { after: 40 }, children: [] })); }
-  });
+  children.push(...solution(q));
 });
+}
 children.push(P('— 끝 —', { align: AlignmentType.CENTER, before: 240 }));
 
 const doc = new Document({
