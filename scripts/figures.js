@@ -495,4 +495,27 @@ F.task1 = svg(660, 330, [
   F.planeValuesSol = svg(640, 330, body.join(''));
 })();
 
+// 2회 과제4 해설: 간섭무늬 모양 읽기 + 패러렐로 평행도
+(() => {
+  const box = (x, title, inner, cap) => [R(x, 50, 150, 150, { fill: '#eef6fb', rx: 8 }), inner, t(x + 75, 36, title, { size: 13, bold: true }), t(x + 75, 222, cap, { size: 12, color: cap.startsWith('평') ? '#2e7d4f' : RED })].join('');
+  let straight = ''; for (let i = 0; i < 6; i++) straight += L(10 + 22 + i * 22, 58, 10 + 22 + i * 22, 192, { w: 3, color: '#7a8a96' });
+  let rings = ''; [1, 2].forEach((n) => { rings += C(205 + 75, 125, 30 * n, { w: 3, color: '#7a8a96' }); });
+  let bent = ''; for (let i = 0; i < 5; i++) { const x = 400 + 25 + i * 25; bent += PATH(`M${x},58 Q${x + 26},125 ${x},192`, { w: 3, color: '#7a8a96' }); }
+  // 평행도 그림
+  const px = 600;
+  const par = [
+    R(px, 90, 50, 70, { fill: '#d5dbe2' }), R(px + 50, 92, 26, 66, { fill: '#dff0f7' }), R(px + 76, 90, 70, 70, { fill: '#d5dbe2' }),
+    L(px + 52, 100, px + 52, 150, { w: 2, color: RED }), L(px + 56, 100, px + 56, 150, { w: 2, color: RED }),
+    L(px + 70, 100, px + 70, 150, { w: 2, color: RED }), L(px + 66, 100, px + 66, 150, { w: 2, color: RED }), L(px + 62, 100, px + 62, 150, { w: 2, color: RED }),
+    t(px + 25, 180, '앤빌', { size: 12 }), t(px + 111, 180, '스핀들', { size: 12 }), t(px + 63, 80, '옵티컬패러렐', { size: 12, bold: true }),
+    t(px + 73, 36, '평행도', { size: 13, bold: true }), t(px + 73, 210, '앤빌 쪽 n₁ + 스핀들 쪽 n₂', { size: 12, color: RED }), t(px + 73, 228, '→ (n₁ + n₂) × λ/2', { size: 12, color: RED }),
+  ];
+  F.micCalibSol = svg(780, 250, [
+    box(10, '곧은 평행 줄', straight, '평평함 (기울기만 있음)'),
+    box(205, '동심원 2개', rings, '볼록/오목: 2 × 0.3 = 0.6 µm'),
+    box(400, '휘어진 줄', bent, '휜 정도만큼 굽은 면'),
+    ...par,
+  ].join(''));
+})();
+
 module.exports = F;

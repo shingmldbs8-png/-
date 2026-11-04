@@ -112,7 +112,7 @@ function figure(name, maxW = 560) {
   ];
 }
 const FIG = { 1: ['task1', 'micReading24512'], 2: ['height'], 3: ['projector', 'chord'], 4: ['micCalib'], 7: ['task7'], 8: ['dof'] };
-const SOLFIG = { 8: ['dofAxes'] }; // 해설에만 넣는 그림
+const SOLFIG = { 4: ['micCalibSol'], 8: ['dofAxes'] }; // 해설에만 넣는 그림
 
 // ---------------- 과제 ----------------
 // body 요소: 문자열 | {t, r, w} 표 | {sheet: rows} 답안표 | {box: n} 계산칸

@@ -114,5 +114,9 @@
  "planeValuesSol": {
   "w": 640,
   "h": 330
+ },
+ "micCalibSol": {
+  "w": 780,
+  "h": 250
  }
 }
