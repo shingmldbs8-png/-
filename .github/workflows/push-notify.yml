@@ -1,0 +1,52 @@
+name: 카드뉴스 알림 보내기
+
+on:
+  push:
+    branches: [main]
+    paths: ["docs/cards/index.json"]
+  workflow_dispatch:
+    inputs:
+      test_message:
+        description: "테스트 알림 문구 (비우면 최신 카드뉴스 알림)"
+        required: false
+        default: "알림 연결 테스트예요. 이 알림이 보이면 설정 완료!"
+
+concurrency:
+  group: push-notify
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-save web-push@3.6.7
+
+      # GitHub Pages에 새 카드가 올라갈 때까지 기다린 뒤 알림 (알림을 눌렀는데 404가 나지 않게)
+      - name: Pages 반영 대기
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          FILE=$(node -e "const i=require('./docs/cards/index.json').items.sort((a,b)=>a.date<b.date?1:-1)[0];console.log(i?i.file:'')")
+          [ -z "$FILE" ] && exit 0
+          OWNER="${GITHUB_REPOSITORY%%/*}"; REPO="${GITHUB_REPOSITORY#*/}"
+          BASE="${PAGES_BASE_URL:-https://${OWNER,,}.github.io/${REPO}}"
+          URL="$BASE/cards/$FILE"
+          for i in $(seq 1 40); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$URL?t=$(date +%s)")
+            echo "[$i] $URL → $code"; [ "$code" = "200" ] && exit 0; sleep 15
+          done
+          echo "::warning::Pages 반영 확인 실패. 알림은 그대로 보냅니다."
+        env:
+          PAGES_BASE_URL: ${{ vars.PAGES_BASE_URL }}
+
+      - name: 알림 전송
+        run: node scripts/send-push.mjs
+        env:
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          PUSH_SUBSCRIPTIONS: ${{ secrets.PUSH_SUBSCRIPTIONS }}
+          VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
+          TEST_MESSAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.test_message || '' }}

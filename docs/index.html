@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>경제 카드뉴스</title>
+<meta name="description" content="평일 아침 경제 브리핑 카드뉴스">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="경제카드">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <button class="icon-btn" id="backBtn" aria-label="뒤로" hidden>‹</button>
+  <h1 id="title">경제 카드뉴스</h1>
+  <button class="icon-btn" id="favBtn" aria-label="즐겨찾기" hidden>☆</button>
+</header>
+
+<main id="view" tabindex="-1"></main>
+
+<div id="viewer" hidden>
+  <iframe id="frame" title="카드뉴스"></iframe>
+</div>
+
+<nav class="tabs" id="tabs">
+  <a href="#/today" data-tab="today"><span>📰</span>오늘</a>
+  <a href="#/list" data-tab="list"><span>🔎</span>목록</a>
+  <a href="#/study" data-tab="study"><span>📚</span>공부</a>
+  <a href="#/fav" data-tab="fav"><span>⭐</span>즐겨찾기</a>
+  <a href="#/settings" data-tab="settings"><span>🔔</span>설정</a>
+</nav>
+
+<div id="toast" role="status" hidden></div>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
