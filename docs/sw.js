@@ -1,5 +1,5 @@
 // 경제 카드뉴스 서비스워커: 오프라인 캐시 + 웹 푸시
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL = `shell-${VERSION}`;
 const CARDS = "cards";
 const SHELL_FILES = ["./", "index.html", "style.css", "app.js", "config.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
