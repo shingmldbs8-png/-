@@ -21,15 +21,19 @@ if (process.env.TEST_MESSAGE) {
   payload = { title: "🦉 경제카드 테스트 알림", body: process.env.TEST_MESSAGE, url: "./#/today", tag: "test" };
 } else {
   const idx = JSON.parse(fs.readFileSync("docs/cards/index.json", "utf8"));
-  const it = (idx.items || []).slice().sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+  // 하루 두 번: id = YYYY-MM-DD-am(미국장·세계) / YYYY-MM-DD-pm(한국장·국내). 예전 항목은 date만 있음
+  const keyOf = (x) => x.id || x.date;
+  const it = (idx.items || []).slice().sort((a, b) => (keyOf(a) < keyOf(b) ? 1 : -1))[0];
   if (!it) { console.log("카드뉴스가 없어 알림을 보내지 않습니다."); process.exit(0); }
+  const ed = it.edition || (String(keyOf(it)).match(/-(am|pm)$/) || [])[1];
+  const icon = ed === "am" ? "🌎" : ed === "pm" ? "🇰🇷" : "🦉";
   const nums = (it.numbers || []).slice(0, 3).map((n) => `${n.label} ${n.value}${n.change ? " " + n.change : ""}`).join(" · ");
   payload = {
-    title: `🦉 ${it.title}`.slice(0, 80),
+    title: `${icon} ${it.title}`.slice(0, 80),
     body: [it.push || it.summary, nums].filter(Boolean).join("\n").slice(0, 180),
-    url: `./#/card/${it.date}`,
+    url: `./#/card/${keyOf(it)}`,
     file: it.file,
-    tag: `card-${it.date}`
+    tag: `card-${keyOf(it)}`
   };
 }
 
