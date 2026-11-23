@@ -27,8 +27,12 @@
     clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.hidden = true), 2200);
   }
   const WD = ["일", "월", "화", "수", "목", "금", "토"];
-  function fmtDate(d) { const [y, m, dd] = d.split("-").map(Number); const w = WD[new Date(y, m - 1, dd).getDay()]; return { y, m, d: dd, w, full: `${y}.${String(m).padStart(2, "0")}.${String(dd).padStart(2, "0")} (${w})` }; }
-  const byDate = (d) => items.find((x) => x.date === d);
+  function fmtDate(d) { const [y, m, dd] = String(d).slice(0, 10).split("-").map(Number); const w = WD[new Date(y, m - 1, dd).getDay()]; return { y, m, d: dd, w, full: `${y}.${String(m).padStart(2, "0")}.${String(dd).padStart(2, "0")} (${w})` }; }
+  // 하루 두 번(오전 am: 미국장·세계 / 오후 pm: 한국장·국내). id 예: 2026-11-24-am. 예전 항목은 id 없이 date만 있음
+  const keyOf = (it) => it.id || it.date;
+  const EDITIONS = { am: "🌎 오전 · 미국장·세계", pm: "🇰🇷 오후 · 한국장·국내" };
+  const edLabel = (it) => EDITIONS[it.edition || (String(keyOf(it)).match(/-(am|pm)$/) || [])[1]] || "";
+  const byDate = (k) => items.find((x) => keyOf(x) === k);
   const isStandalone = () => window.navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
   const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
@@ -38,7 +42,7 @@
       const r = await fetch("cards/index.json", { cache: "no-cache" });
       if (!r.ok) throw new Error("HTTP " + r.status);
       const j = await r.json();
-      items = (j.items || []).slice().sort((a, b) => (a.date < b.date ? 1 : -1));
+      items = (j.items || []).slice().sort((a, b) => (keyOf(a) < keyOf(b) ? 1 : -1));
       loadError = null;
       // 최근 5개는 미리 받아 두기 → 오프라인에서도 열림 (서비스워커가 캐시)
       items.slice(0, 5).forEach((it) => fetch("cards/" + it.file).catch(() => {}));
@@ -60,10 +64,11 @@
   function itemHTML(it) {
     const f = fmtDate(it.date);
     const tags = (it.tags || []).slice(0, 4).map((t) => `<span class="tag">${esc(t)}</span>`).join("");
-    return `<div class="item" data-open="${esc(it.date)}" role="link" tabindex="0">
+    const ed = edLabel(it);
+    return `<div class="item" data-open="${esc(keyOf(it))}" role="link" tabindex="0">
       <div class="d">${f.m}월<b>${f.d}</b>${f.w}</div>
-      <div class="t"><h3>${esc(it.title)}</h3><p>${esc(it.summary || "")}</p>${tags ? `<div class="tags">${tags}</div>` : ""}</div>
-      ${isFav(it.date) ? '<span class="star">★</span>' : ""}</div>`;
+      <div class="t">${ed ? `<div class="note" style="margin:0">${esc(ed)}</div>` : ""}<h3>${esc(it.title)}</h3><p>${esc(it.summary || "")}</p>${tags ? `<div class="tags">${tags}</div>` : ""}</div>
+      ${isFav(keyOf(it)) ? '<span class="star">★</span>' : ""}</div>`;
   }
   function emptyHTML(icon, msg) { return `<div class="empty"><span class="big">${icon}</span>${msg}</div>`; }
   function errorHTML() {
@@ -74,7 +79,7 @@
   function renderToday() {
     setChrome({ title: "오늘의 경제", tab: "today" });
     if (loadError && !items.length) return (view.innerHTML = errorHTML());
-    if (!items.length) return (view.innerHTML = emptyHTML("🗞️", "아직 카드뉴스가 없어요.<br>평일 아침 7시 50분쯤 도착해요."));
+    if (!items.length) return (view.innerHTML = emptyHTML("🗞️", "아직 카드뉴스가 없어요.<br>오전(미국장·세계)과 오후(한국장·국내) 하루 두 번 도착해요."));
     const it = items[0], f = fmtDate(it.date);
     const chips = (it.numbers || []).slice(0, 6).map((n) => {
       const c = String(n.change || ""); const cls = c.startsWith("+") || c.startsWith("▲") ? "up" : c.startsWith("-") || c.startsWith("▼") ? "down" : "";
@@ -84,11 +89,11 @@
     const prev = items.slice(1, 4).map(itemHTML).join("");
     view.innerHTML = `
       <section class="card hero">
-        <div class="date">${esc(f.full)}${it.basis ? " · " + esc(it.basis) : ""}</div>
+        <div class="date">${esc(f.full)}${edLabel(it) ? " · " + esc(edLabel(it)) : ""}${it.basis ? " · " + esc(it.basis) : ""}</div>
         <h2>${esc(it.title)}</h2>
         ${it.summary ? `<p>${esc(it.summary)}</p>` : ""}
         ${chips ? `<div class="chips">${chips}</div>` : ""}
-        <button class="btn" data-open="${esc(it.date)}">카드뉴스 보기 →</button>
+        <button class="btn" data-open="${esc(keyOf(it))}">카드뉴스 보기 →</button>
       </section>
       ${study ? `<div class="sec-title">오늘의 공부 포인트</div><div class="tags" style="margin:0 2px 8px">${study}</div>` : ""}
       ${prev ? `<div class="sec-title">지난 카드뉴스</div>${prev}<a class="btn ghost" href="#/list">전체 목록 보기</a>` : ""}
@@ -97,7 +102,7 @@
 
   function pushHint() {
     if (store.get("pushOn", false)) return "";
-    return `<div class="card" style="margin-top:14px"><div class="status"><span class="dot warn"></span>아침 알림이 꺼져 있어요</div>
+    return `<div class="card" style="margin-top:14px"><div class="status"><span class="dot warn"></span>알림이 꺼져 있어요</div>
       <p class="note" style="margin:0 0 10px">설정 탭에서 알림을 켜면 카드뉴스가 올라올 때 알려 드려요.</p>
       <a class="btn ghost" href="#/settings">알림 설정하기</a></div>`;
   }
@@ -109,7 +114,7 @@
   }
   function matches(it, q) {
     if (!q) return true;
-    const hay = [it.title, it.summary, ...(it.tags || []), ...(it.headlines || []), ...(it.study || []).map((s) => s.concept + " " + (s.desc || "")), it.date].join(" ").toLowerCase();
+    const hay = [it.title, it.summary, edLabel(it), ...(it.tags || []), ...(it.headlines || []), ...(it.study || []).map((s) => s.concept + " " + (s.desc || "")), it.date].join(" ").toLowerCase();
     return q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
   }
   function renderList() {
@@ -138,7 +143,7 @@
     setChrome({ title: "공부 포인트 모아보기", tab: "study" });
     if (loadError && !items.length) return (view.innerHTML = errorHTML());
     const list = [];
-    items.forEach((it) => (it.study || []).forEach((s) => list.push({ ...s, date: it.date })));
+    items.forEach((it) => (it.study || []).forEach((s) => list.push({ ...s, date: keyOf(it) })));
     if (!list.length) return (view.innerHTML = emptyHTML("📚", "아직 모인 공부 포인트가 없어요."));
     view.innerHTML = `<div class="note">지금까지 배운 경제 개념 ${list.length}개</div>` + list.map((s) => `
       <div class="study"><h3>📚 ${esc(s.concept)}</h3>${s.desc ? `<p>${esc(s.desc)}</p>` : ""}
@@ -190,7 +195,7 @@
       } else {
         store.set("pushOn", false);
         body = `<div class="card"><div class="status"><span class="dot warn"></span>알림이 꺼져 있어요</div>
-          <p class="note" style="margin:0 0 10px">평일 아침 카드뉴스가 올라오면 알림으로 알려 드려요.</p>
+          <p class="note" style="margin:0 0 10px">오전(미국장·세계)과 오후(한국장·국내) 카드뉴스가 올라오면 알림으로 알려 드려요.</p>
           <button class="btn" data-act="sub">🔔 알림 켜기</button></div>`;
       }
     }
@@ -214,10 +219,13 @@
   // ---------- 라우터 ----------
   async function route() {
     const h = location.hash || "#/today";
-    const m = h.match(/^#\/card\/(\d{4}-\d{2}-\d{2})/);
+    const m = h.match(/^#\/card\/(\d{4}-\d{2}-\d{2}(?:-(?:am|pm))?)/);
     if (m) {
-      const it = byDate(m[1]);
-      setChrome({ title: fmtDate(m[1]).full, back: true, fav: m[1] });
+      // 예전 링크(#/card/날짜)는 그 날짜의 최신 판으로 연결
+      const it = byDate(m[1]) || items.find((x) => x.date === m[1]);
+      const k = it ? keyOf(it) : m[1];
+      const ed = it ? (it.edition || (String(k).match(/-(am|pm)$/) || [])[1]) : "";
+      setChrome({ title: fmtDate(k).full + (ed === "am" ? " 오전" : ed === "pm" ? " 오후" : ""), back: true, fav: k });
       if (!it) { showViewer(false); view.innerHTML = emptyHTML("🤔", "이 날짜의 카드뉴스를 찾지 못했어요."); return; }
       const src = "cards/" + it.file;
       if (frame.getAttribute("src") !== src) frame.setAttribute("src", src);
