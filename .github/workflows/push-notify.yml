@@ -30,7 +30,7 @@ jobs:
       - name: Pages 반영 대기
         if: ${{ github.event_name == 'push' }}
         run: |
-          FILE=$(node -e "const i=require('./docs/cards/index.json').items.sort((a,b)=>a.date<b.date?1:-1)[0];console.log(i?i.file:'')")
+          FILE=$(node -e "const k=x=>x.id||x.date;const i=require('./docs/cards/index.json').items.sort((a,b)=>k(a)<k(b)?1:-1)[0];console.log(i?i.file:'')")
           [ -z "$FILE" ] && exit 0
           OWNER="${GITHUB_REPOSITORY%%/*}"; REPO="${GITHUB_REPOSITORY#*/}"
           BASE="${PAGES_BASE_URL:-https://${OWNER,,}.github.io/${REPO}}"
