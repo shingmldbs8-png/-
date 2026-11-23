@@ -1,11 +1,16 @@
 # 경제카드 (아침 경제 카드뉴스 PWA)
 
-평일 아침 Claude 예약 작업이 만든 경제 카드뉴스를 **아이폰 홈 화면 앱**으로 보고, **웹 푸시 알림**으로 받는 앱입니다.
+Claude 예약 작업이 하루 두 번 만든 경제 카드뉴스를 **아이폰 홈 화면 앱**으로 보고, **웹 푸시 알림**으로 받는 앱입니다.
+
+| 판 | 시각 (한국 시간) | 내용 | id / 파일 |
+|---|---|---|---|
+| 오전 `am` | 화~토 07:00 | 밤사이 미국 증시 마감 + 세계 뉴스 | `YYYY-MM-DD-am` / `YYYY-MM-DD-am.html` |
+| 오후 `pm` | 월~금 16:10 | 한국 증시 마감(15:30) + 국내 뉴스 | `YYYY-MM-DD-pm` / `YYYY-MM-DD-pm.html` |
 
 ## 구조
 
 ```
-[Claude 예약 작업 07:52] → docs/cards/YYYY-MM-DD.html + docs/cards/index.json 을 main에 커밋
+[Claude 예약 작업 (오전/오후)] → docs/cards/YYYY-MM-DD-am|pm.html + docs/cards/index.json 을 main에 커밋
         ↓
 [GitHub Pages] docs/ 폴더를 웹앱으로 배포
         ↓
@@ -40,8 +45,10 @@
 
 ```json
 {
-  "date": "2026-11-23",
-  "file": "2026-11-23.html",
+  "id": "2026-11-24-pm",
+  "edition": "pm",
+  "date": "2026-11-24",
+  "file": "2026-11-24-pm.html",
   "title": "표지 제목 한 문장",
   "summary": "결론 2~3문장",
   "basis": "11/21(금) 마감 기준",
@@ -52,7 +59,7 @@
   "study": [{ "concept": "점도표", "desc": "한두 문장 설명" }]
 }
 ```
-`items` 배열 맨 앞(최신순)에 추가합니다.
+`items` 배열 맨 앞(최신순)에 추가합니다. `id`는 날짜 + `-am`/`-pm`이고, 앱·알림은 `id`로 카드를 찾습니다 (예전 항목은 `id` 없이 `date`만 있어도 됩니다).
 
 ## 문제 해결
 
