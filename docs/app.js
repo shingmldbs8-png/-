@@ -173,7 +173,7 @@
     } else if (!supported) {
       body = `<div class="card"><div class="status"><span class="dot warn"></span>이 기기는 웹 푸시 알림을 지원하지 않아요</div><p class="note" style="margin:0">iOS 16.4 이상으로 업데이트한 뒤 다시 시도해 주세요.</p></div>`;
     } else {
-      const sub = await getSub().catch(() => null);
+      let sub = await getSub().catch(() => null); const ak = sub && sub.options && sub.options.applicationServerKey; if (ak && btoa(String.fromCharCode(...new Uint8Array(ak))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "") !== CFG.vapidPublicKey) { await sub.unsubscribe().catch(() => {}); sub = null; }
       const perm = Notification.permission;
       if (sub && perm === "granted") {
         store.set("pushOn", true);
